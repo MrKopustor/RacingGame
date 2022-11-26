@@ -1,105 +1,46 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class LevelLayoutGenerator : MonoBehaviour
 {
-    public LevelChunkData[] levelChunkData;
-    public LevelChunkData firstChunk;
+    public GameObject[] tilePrefabs;
+    private List<GameObject> activeTiles = new List<GameObject>(); 
+    private float spawnPos = 0;
+    private float tileLength = 120;
 
-    private LevelChunkData previousChunk;
-
-    public Vector3 spawnOrigin;
-
-    private Vector3 spawnPosition;
-    public int chunksToSpawn = 10;
-
-    void OnEnable()
-    {
-        TriggerExit.OnChunkExited += PickAndSpawnChunk;
-    }
-
-    private void OnDisable()
-    {
-        TriggerExit.OnChunkExited -= PickAndSpawnChunk;
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.T))
-        {
-            PickAndSpawnChunk();
-        }
-    }
-
+    [SerializeField] private Transform player;
+    private int startTiles = 6;
     void Start()
     {
-        previousChunk = firstChunk;
-
-        for (int i = 0; i < chunksToSpawn; i++)
+        for (int i = 0; i < startTiles; i++)
         {
-            PickAndSpawnChunk();
+            SpawnTile(Random.Range(0, tilePrefabs.Length));
         }
     }
-    
-    LevelChunkData PickNextChunk()
+
+    void Update()
     {
-        List<LevelChunkData> allowedChunkList = new List<LevelChunkData>();
-        LevelChunkData nextChunk = null;
-
-        LevelChunkData.Direction nextRequiredDirection = LevelChunkData.Direction.North;
-
-        switch (previousChunk.exitDirection)
+        if (player.position.z - 60 > spawnPos - (startTiles * tileLength))
         {
-            case LevelChunkData.Direction.North:
-                nextRequiredDirection = LevelChunkData.Direction.South;
-                spawnPosition = spawnPosition + new Vector3(0f, 0, previousChunk.chunkSize.y);
-
-                break;
-            case LevelChunkData.Direction.East:
-                nextRequiredDirection = LevelChunkData.Direction.West;
-                spawnPosition = spawnPosition + new Vector3(previousChunk.chunkSize.x, 0, 0);
-                break;
-            case LevelChunkData.Direction.South:
-                nextRequiredDirection = LevelChunkData.Direction.North;
-                spawnPosition = spawnPosition + new Vector3(0, 0, -previousChunk.chunkSize.y);
-                break;
-            case LevelChunkData.Direction.West:
-                nextRequiredDirection = LevelChunkData.Direction.East;
-                spawnPosition = spawnPosition + new Vector3(-previousChunk.chunkSize.x, 0, 0);
-
-                break;
-            default:
-                break;
+            SpawnTile(Random.Range(0, tilePrefabs.Length));
+            DeleteTile();
         }
-
-        for (int i = 0; i < levelChunkData.Length; i++)
-        {
-            if(levelChunkData[i].entryDirection == nextRequiredDirection)
-            {
-                allowedChunkList.Add(levelChunkData[i]);
-            }
-        }
-        
-        nextChunk = allowedChunkList[Random.Range(0, allowedChunkList.Count)];
-
-        return nextChunk;
-
+            
     }
 
-    void PickAndSpawnChunk()
+    private void SpawnTile(int tileIndex)
     {
-        LevelChunkData chunkToSpawn = PickNextChunk();
-
-        GameObject objectFromChunk = chunkToSpawn.levelChunks[Random.Range(0, chunkToSpawn.levelChunks.Length)];
-        previousChunk = chunkToSpawn;
-        Instantiate(objectFromChunk, spawnPosition + spawnOrigin, Quaternion.identity);
-
+        GameObject nextTile = Instantiate(tilePrefabs[tileIndex], transform.forward * spawnPos, transform.rotation);
+        activeTiles.Add(nextTile);
+        spawnPos += tileLength;
     }
 
-    public void UpdateSpawnOrigin(Vector3 originDelta)
+    private void DeleteTile()
     {
-        spawnOrigin = spawnOrigin + originDelta;
+        Destroy(activeTiles[0]);
+        activeTiles.RemoveAt(0);
     }
-
 }
